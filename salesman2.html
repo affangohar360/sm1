@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Salesman - Royal Sherwani</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --gold: #D4AF37; --bg: #050505; --card: #141414; --text: #E0E0E0;
+            --shop: #4CAF50; --godown: #FF9800; --transit: #2196F3;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+        h1, h2, h3 { font-family: 'Cinzel', serif; color: var(--gold); margin: 0; }
+        .hidden { display: none !important; }
+        .full-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; background: var(--bg); display: flex; flex-direction: column; }
+        .flex-center { justify-content: center; align-items: center; }
+
+        /* LOGIN */
+        #login-screen { z-index: 1000; background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%); }
+        .login-box { width: 85%; max-width: 320px; text-align: center; }
+        .inp { width: 100%; padding: 15px; background: #222; border: 1px solid #444; color: white; border-radius: 12px; font-size: 16px; margin-bottom: 12px; }
+        .btn-gold { width: 100%; padding: 16px; background: linear-gradient(135deg, var(--gold), #AA8C2C); border: none; font-weight: 800; border-radius: 12px; color: black; font-size: 16px; text-transform: uppercase; }
+
+        /* DASHBOARD */
+        #dashboard-screen { display: none; padding: 15px; max-width: 800px; margin: 0 auto; padding-bottom: 80px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px; }
+        .search-area { display: flex; gap: 10px; margin-bottom: 20px; background: #1a1a1a; padding: 8px; border-radius: 12px; border: 1px solid #333; position: sticky; top: 10px; z-index: 90; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
+        .search-input { flex: 1; background: transparent; border: none; color: white; font-size: 16px; padding: 5px; }
+        .icon-btn { background: #333; color: var(--gold); border: 1px solid var(--gold); width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; }
+
+        /* GRID */
+        .design-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .design-card { background: var(--card); border: 1px solid #333; border-radius: 12px; overflow: hidden; position: relative; transition: transform 0.1s; }
+        .design-card:active { transform: scale(0.98); border-color: var(--gold); }
+        .card-img { width: 100%; aspect-ratio: 1; object-fit: cover; border-bottom: 1px solid #333; }
+        .qty-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: var(--gold); border: 1px solid var(--gold); padding: 5px 10px; border-radius: 6px; font-weight: bold; font-size: 12px; }
+        .card-body { padding: 10px; text-align: center; }
+        .card-title { font-size: 14px; font-weight: bold; color: white; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-sub { font-size: 10px; color: #888; }
+
+        /* MODALS */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 200; justify-content: center; align-items: center; }
+        .modal-content { background: var(--card); padding: 0; border-radius: 16px; width: 95%; max-width: 450px; border: 1px solid var(--gold); max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+        .modal-img-area { position: relative; width: 100%; height: 300px; background: #000; }
+        .modal-img { width: 100%; height: 100%; object-fit: contain; }
+        .modal-header-text { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 20px; }
+        
+        .stock-list { padding: 15px; overflow-y: auto; flex: 1; }
+        .stock-item { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 12px; margin-bottom: 8px; border-radius: 8px; border-left: 4px solid #555; }
+        .stock-item.shop { border-left-color: var(--shop); }
+        .stock-item.godown { border-left-color: var(--godown); }
+        
+        .btn-hist { width: 100%; background: #333; color: var(--gold); border: none; padding: 15px; font-weight: bold; border-top: 1px solid #444; }
+        .btn-close { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); color: white; border: none; width: 35px; height: 35px; border-radius: 50%; font-weight: bold; z-index: 10; }
+
+        /* HISTORY */
+        .hist-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #333; font-size: 12px; }
+        .hist-time { color: #666; font-size: 10px; }
+
+        /* SCANNER */
+        #scanner-modal { background: #000; z-index: 300; }
+        #reader { width: 100%; max-width: 350px; border: 2px solid var(--gold); }
+        .loader { border: 3px solid #333; border-top: 3px solid var(--gold); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen" class="full-screen flex-center">
+        <h2 style="color:var(--gold); margin-bottom:20px;">SALESMAN</h2>
+        <div class="login-box"><input type="email" id="email" class="inp" placeholder="Email"><input type="password" id="password" class="inp" placeholder="Password"><button onclick="handleLogin()" class="btn-gold">LOGIN</button><p id="login-msg" style="color:var(--danger); margin-top:15px; font-size:12px;"></p></div>
+    </div>
+
+    <div id="dashboard-screen">
+        <div class="header"><h2>ROYAL SHERWANI</h2><button onclick="handleLogout()" style="background:none; border:1px solid #444; color:#888; padding:5px 10px; border-radius:15px; font-size:10px;">LOGOUT</button></div>
+        <div class="search-area"><input type="text" id="search-input" class="search-input" placeholder="Search..." oninput="filterDesigns()"><button class="icon-btn" onclick="startGlobalScan()">📷</button></div>
+        <div id="designs-grid" class="design-grid"></div>
+        <div id="main-loader" class="loader"></div>
+    </div>
+
+    <div id="detail-modal" class="modal">
+        <div class="modal-content">
+            <button class="btn-close" onclick="closeModal('detail-modal')">✕</button>
+            <div class="modal-img-area"><img id="det-img" src="" class="modal-img"><div class="modal-header-text"><h2 id="det-no" style="color:white; margin:0;">#0000</h2><span id="det-name" style="color:#ccc; font-size:14px;">Design Name</span></div></div>
+            <div class="stock-list" id="stock-list"></div>
+            <button class="btn-hist" onclick="openHistory()">VIEW MOVEMENT HISTORY 🕒</button>
+        </div>
+    </div>
+
+    <div id="history-modal" class="modal">
+        <div class="modal-content" style="height:70vh;">
+            <div style="padding:15px; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center;"><h3>HISTORY</h3><button onclick="closeModal('history-modal')" style="background:none; border:none; color:white; font-size:20px;">✕</button></div>
+            <div id="history-list" style="padding:10px; overflow-y:auto; flex:1;"></div>
+        </div>
+    </div>
+
+    <div id="scanner-modal" class="modal">
+        <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
+            <h3 style="margin-bottom: 10px; color: var(--gold);">SCANNING...</h3><div id="reader"></div><button onclick="stopScanner()" style="margin-top:20px; background:#333; color:white; padding:10px 30px; border:none; border-radius:20px;">CANCEL</button>
+        </div>
+    </div>
+
+    <script>
+        const supabase = window.supabase.createClient('https://wtngngigwoypiavbqxss.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0bmduZ2lnd295cGlhdmJxeHNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5ODQ2MDQsImV4cCI6MjA3OTU2MDYwNH0.JEwbAQVgWqP3xw_XpBYMzaX8qhXIBrZowsJUZiFDkiE');
+        let allDesigns=[], allItems=[], currentDesignNo=null, html5QrCode=null;
+
+        window.onload = () => {
+            supabase.auth.onAuthStateChange((event, session) => {
+                if(session){ document.getElementById('login-screen').classList.add('hidden'); document.getElementById('dashboard-screen').style.display='block'; loadData(); }
+                else { document.getElementById('login-screen').classList.remove('hidden'); document.getElementById('dashboard-screen').style.display='none'; }
+            });
+            window.onpopstate = () => { const visible = document.querySelector('.modal[style*="display: flex"]'); if(visible) { visible.style.display = 'none'; if(html5QrCode) stopScanner(); } };
+        };
+
+        async function handleLogin() { const { error } = await supabase.auth.signInWithPassword({ email:document.getElementById('email').value, password:document.getElementById('password').value }); if(error) document.getElementById('login-msg').innerText = error.message; }
+        async function handleLogout() { await supabase.auth.signOut(); location.reload(); }
+
+        async function loadData() {
+            document.getElementById('main-loader').style.display = 'block';
+            const { data: designs } = await supabase.from('designs').select('*').order('created_at', { ascending: false });
+            // FETCH ALL ITEMS
+            const { data: items } = await supabase.from('items').select('id, design_no, current_location, size');
+            
+            // FILTER OUT SOLD/RM items for counting and searching
+            allItems = items.filter(i => i.current_location !== 'SOLD' && i.current_location !== 'RM');
+            
+            const counts = {};
+            allItems.forEach(i => {
+                if(!counts[i.design_no]) counts[i.design_no] = 0;
+                counts[i.design_no]++;
+            });
+
+            allDesigns = designs.map(d => ({ ...d, total_qty: counts[d.design_no] || 0 }));
+            renderGrid(allDesigns);
+            document.getElementById('main-loader').style.display = 'none';
+        }
+
+        function renderGrid(list) {
+            const grid = document.getElementById('designs-grid'); grid.innerHTML = '';
+            list.forEach(d => {
+                grid.innerHTML += `<div class="design-card" onclick="openDetail('${d.design_no}', '${d.image_url}', '${d.name}')"><div class="qty-badge">${d.total_qty} Pcs</div><img src="${d.image_url}" class="card-img" loading="lazy"><div class="card-body"><div class="card-title">#${d.design_no}</div><div class="card-sub">${d.name}</div></div></div>`;
+            });
+        }
+
+        function filterDesigns() {
+            const q = document.getElementById('search-input').value.trim().toLowerCase();
+            if(!q) { renderGrid(allDesigns); return; }
+            const designMatches = allDesigns.filter(d => d.design_no.toLowerCase().includes(q) || d.name.toLowerCase().includes(q));
+            const itemMatches = allItems.filter(i => i.id.toLowerCase().includes(q));
+            const designNosFromItems = itemMatches.map(i => i.design_no);
+            const idMatches = allDesigns.filter(d => designNosFromItems.includes(d.design_no));
+            renderGrid([...new Set([...designMatches, ...idMatches])]);
+        }
+
+        async function openDetail(no, img, name) {
+            currentDesignNo = no;
+            document.getElementById('det-img').src = img; document.getElementById('det-no').innerText = "#" + no; document.getElementById('det-name').innerText = name;
+            openModal('detail-modal');
+            const list = document.getElementById('stock-list'); list.innerHTML = '<div class="loader" style="display:block"></div>';
+
+            // FETCH ONLY ACTIVE STOCK (Not SOLD, Not RM)
+            const { data: items } = await supabase.from('items').select('*').eq('design_no', no).neq('current_location', 'SOLD').neq('current_location', 'RM').order('size');
+            
+            list.innerHTML = '';
+            if(!items || items.length === 0) { list.innerHTML = '<p style="text-align:center; color:#666;">No Stock Available</p>'; } 
+            else {
+                items.forEach(i => {
+                    const locClass = i.current_location === 'SHOP' ? 'shop' : (i.current_location === 'GODOWN' ? 'godown' : 'transit');
+                    const locColor = locClass === 'shop' ? 'var(--shop)' : (locClass === 'godown' ? 'var(--godown)' : 'var(--transit)');
+                    list.innerHTML += `<div class="stock-item ${locClass}"><div><div style="color:white; font-weight:bold; font-size:14px;">Size: ${i.size}</div><div style="color:#888; font-family:monospace; font-size:12px;">${i.id}</div></div><div style="font-size:10px; font-weight:bold; color:${locColor}; text-transform:uppercase;">${i.current_location}</div></div>`;
+                });
+            }
+        }
+
+        async function openHistory() {
+            openModal('history-modal');
+            const list = document.getElementById('history-list'); list.innerHTML = '<div class="loader" style="display:block"></div>';
+            const { data: logs } = await supabase.from('logs').select('*, items!inner(design_no, size)').eq('items.design_no', currentDesignNo).order('timestamp', { ascending: false });
+            list.innerHTML = '';
+            if(!logs || logs.length === 0) { list.innerHTML = '<p style="text-align:center; color:#666;">No Movement History</p>'; return; }
+            logs.forEach(l => {
+                const isSold = l.action_type.includes('SOLD');
+                const isShop = l.action_type.includes('SHOP');
+                const icon = isSold ? '💰' : (isShop ? '🛍️' : '📦');
+                list.innerHTML += `<div class="hist-row"><div><div style="color:white; font-weight:bold;">Size ${l.items.size}</div><div style="color:#888; font-size:10px;">${l.action_type}</div></div><div style="text-align:right;"><div>${icon}</div><div class="hist-time">${new Date(l.timestamp).toLocaleDateString()}</div></div></div>`;
+            });
+        }
+
+        function startGlobalScan() { openModal('scanner-modal'); html5QrCode = new Html5Qrcode("reader"); html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (txt) => { document.getElementById('search-input').value = txt; filterDesigns(); stopScanner(); }).catch(err => { alert("Camera Error"); stopScanner(); }); }
+        function stopScanner() { if(html5QrCode) html5QrCode.stop().then(() => { html5QrCode.clear(); document.getElementById('scanner-modal').style.display = 'none'; if(history.state) history.back(); }); else document.getElementById('scanner-modal').style.display = 'none'; }
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; history.pushState({modal: id}, null, ""); }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; if(history.state) history.back(); }
+    </script>
+</body>
+</html>
